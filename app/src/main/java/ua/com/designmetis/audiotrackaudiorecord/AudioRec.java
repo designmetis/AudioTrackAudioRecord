@@ -12,7 +12,7 @@ public class AudioRec {
 
     String TAG = "myLogs";
 
-    // создаем параметры записи звука
+
     int samplRate = 8000;
     int chanelConfigIn = AudioFormat.CHANNEL_IN_MONO;
     int chanelConfigOut = AudioFormat.CHANNEL_OUT_MONO;
@@ -20,39 +20,70 @@ public class AudioRec {
     int audioStream = AudioManager.STREAM_MUSIC;
     int audioMode = AudioTrack.MODE_STREAM;
 
-    // размер буфера записи
-    int bufferSize = 50 * AudioTrack.getMinBufferSize(samplRate, chanelConfigOut, audioFormat);
-
-    // создаем объект AudioRecord для записи звука
-    public AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, samplRate, chanelConfigIn, audioFormat, bufferSize);
-
-    // создаем объект AudioTrack для воспроизведения звука (???)
-    public AudioTrack audioTrack = new AudioTrack(audioStream, samplRate, chanelConfigOut, audioFormat, bufferSize, audioMode);
+    int bufferTrackSize = 50 * AudioTrack.getMinBufferSize(samplRate, chanelConfigOut, audioFormat);
+    int bufferRecSize = 50*AudioRecord.getMinBufferSize(samplRate,chanelConfigIn,audioFormat);
 
 
-    // создаем буфер для записи звука
-    short[] buffer = new short[bufferSize];
+    public AudioRecord audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, samplRate, chanelConfigIn, audioFormat, bufferTrackSize);
 
-    // функция записи звука
+    public AudioTrack audioTrack = new AudioTrack(audioStream, samplRate, chanelConfigOut, audioFormat, bufferTrackSize, audioMode);
+
+
+    short[] buffer = new short[bufferTrackSize];
+
     public  void record(){
-        // начинаем запись
+        int initState = audioRecord.getState();
+        Log.i(TAG, "BufferTracksize "+ bufferTrackSize+" BufferRecordSize "+ bufferRecSize);
+        Log.d(TAG, "InitialState " + initState);
         audioRecord.startRecording();
-        int recordState = audioRecord.getState();
-        Log.d(TAG, "recordState " + recordState);
-        // читаем звук в буфер
-        audioRecord.read(buffer, 0, bufferSize);
-        // останавливаем запись
-        audioRecord.stop();
+        int recordingState = audioRecord.getRecordingState();
+        Log.d(TAG, "RecordState " + recordingState);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                audioRecord.read(buffer, 0, bufferTrackSize);
+            }
+        }).start();
+
     }
 
-    // функция воспроизведения звука
+
     public void play(){
-        int i = 0;
-        while (i < bufferSize){
-            audioTrack.write(buffer, i++, bufferSize);
-        }
-        return;
+        int offset = 0;
+        int remaining = bufferTrackSize;
+        Log.i(TAG, "AudioTrackState " + audioTrack.getState());
+        if(audioTrack.getState() == AudioTrack.STATE_INITIALIZED) {
+            while (0 < remaining) {
+                int numWrite = audioTrack.write(buffer, offset, remaining);
+                Log.i(TAG, "NumWrite " + numWrite);
+                if (numWrite == AudioTrack.ERROR_INVALID_OPERATION
+                        || numWrite == AudioTrack.ERROR_BAD_VALUE) {
+                    throw new IllegalStateException("Huston, we have a problem. Not valid numWrite");
+                }
+                offset += numWrite;
+                remaining -= numWrite;
+            }
+            audioTrack.play();
+        }else throw new IllegalStateException("Huston, we have a problem. AudioTrack is not initialized");
     }
+    public void stopRecord(){
+        if(audioRecord.getState() == AudioRecord.STATE_INITIALIZED){
+        audioRecord.stop();
+        audioRecord.release();
+        Log.i(TAG, "Get buff [1240]" + buffer[1240]);
+            printBuffer();
+        }
+    }
+    private void printBuffer(){
+        StringBuilder sb = new StringBuilder(bufferTrackSize);
+        for(int i = 0; i< buffer.length-1; i++){
+            sb.append(buffer[i]);
+            sb.append(" ");
+        }
+        Log.i(TAG, "Buffer contain "+ sb.toString());
+    }
+
+
 
 
 

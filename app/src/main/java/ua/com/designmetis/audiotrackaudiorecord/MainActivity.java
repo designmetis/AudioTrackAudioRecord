@@ -24,10 +24,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // определяем кнопки
-
         Button actionButton = (Button) findViewById(R.id.record);
-        //устанавливаем обработчик кнопки записи
         actionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -36,13 +33,19 @@ public class MainActivity extends Activity {
             }
         });
 
-        //находим кнопку play и устанавливаем обработчик для нее
         Button replayButton = (Button) findViewById(R.id.play);
         replayButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
             audioRec.play();
                 Log.d(TAG, "onClick butt play");
+            }
+        });
+        Button stopRec = (Button) findViewById(R.id.stop_rec);
+        stopRec.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                audioRec.stopRecord();
             }
         });
     }
